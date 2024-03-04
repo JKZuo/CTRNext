@@ -39,3 +39,7 @@ epoch:1, time:86, valid_acc:[0.35 0.48 0.57 0.62],MRR:0.426, mAP20:0.419, NDCG5:
 
 epoch:1, time:86, test_acc:[0.30 0.43 0.51 0.59], MRR:0.367, mAP20:0.361, NDCG5:0.366, NDCG10:0.392, NDCG20:0.412
   
+## Data
+Due to the large dataset, you can download it through this link:
+
+https://pan.baidu.com/s/19NG8Vn3u4fhsUK1P_kEr0Q?pwd=poi1
