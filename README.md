@@ -3,6 +3,7 @@ A Collaborative Trajectory Representation model (CTRNext) to enhance the Next PO
 
 ## Requirements
 The code has been tested running under Python 3.9.12.
+
 The required packages are as follows: 
 
 Python == 3.9.12 
@@ -15,7 +16,9 @@ NumPy == 1.18.2
 ```shell
 nohup python train.py > train.log 2>&1 &
 ```
+
 You will see on the screen the result: 
+
   0%|          | 0/100 [00:00<?, ?it/s] 
   
   1%|          | 1/100 [00:01<01:59,  1.21s/it]
@@ -34,5 +37,5 @@ You will see on the screen the result:
   
 epoch:1, time:86, valid_acc:[0.35 0.48 0.57 0.62], MRR:0.426, mAP20:0.419, NDCG5:0.424, NDCG10:0.452, NDCG20:0.465
 
-epoch:1, time:86, test_acc:[0.3  0.43 0.51 0.59], MRR:0.367, mAP20:0.361, NDCG5:0.366, NDCG10:0.392, NDCG20:0.412
+epoch:1, time:86, test_acc:[0.3  0.43 0.51 0.59],  MRR:0.367, mAP20:0.361, NDCG5:0.366, NDCG10:0.392, NDCG20:0.412
   
