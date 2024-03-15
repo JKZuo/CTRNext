@@ -2,97 +2,99 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-seed = 0
 global_seed = 0
-hours = 24*7
-torch.manual_seed(seed)
+torch.manual_seed(0)
 device = 'cuda:0'
 
 def to_npy(x):
     return x.cpu().data.numpy() if device == 'cuda:0' else x.detach().numpy()
+    
+class CTRMultiEmbedding(nn.Module):
+    def __init__(self, ex_parameters, embedding_size, embedding_layers):
+        super(CTRMultiEmbedding, self).__init__()
+        self.embedding_t, self.embedding_l, self.embedding_u, self.embedding_su, self.embedding_sl, self.embedding_tu, self.embedding_tl = embedding_layers
+        self.ex_su, self.ex_sl, self.ex_tu, self.ex_tl = ex_parameters
+        self.embedding_size = embedding_size
 
-class MultiEmbed(nn.Module):
-    def __init__(self, ex, emb_size, embed_layers):
-        super(MultiEmbed, self).__init__()
-        self.emb_t, self.emb_l, self.emb_u, self.emb_su, self.emb_sl, self.emb_tu, self.emb_tl = embed_layers
-        self.su, self.sl, self.tu, self.tl = ex
-        self.emb_size = emb_size
+    def forward(self, traj_input, mat_input, traj_length):
+        # traj_input (N, M, 3), mat_input (N, M, M, 2), traj_length [N]
+        hours = 24*7
+        traj_input[:, :, 2] = (traj_input[:, :, 2] - 1) % hours + 1  
+        time_embedding = self.embedding_t(traj_input[:, :, 2])  
+        location_embedding = self.embedding_l(traj_input[:, :, 1])  
+        user_embedding = self.embedding_u(traj_input[:, :, 0])  
+        joint_embedding = time_embedding + location_embedding + user_embedding  
 
-    def forward(self, traj, mat, traj_len):
-        # traj (N, M, 3), mat (N, M, M, 2), len [N]
-        traj[:, :, 2] = (traj[:, :, 2]-1) % hours + 1  
-        time = self.emb_t(traj[:, :, 2])  
-        loc = self.emb_l(traj[:, :, 1])  
-        user = self.emb_u(traj[:, :, 0])  
-        joint = time + loc + user  
-
-        delta_s, delta_t = mat[:, :, :, 0], mat[:, :, :, 1]
-        mask = torch.zeros_like(delta_s, dtype=torch.long)
+        delta_spatial, delta_temporal = mat_input[:, :, :, 0], mat_input[:, :, :, 1]
+        mask = torch.zeros_like(delta_spatial, dtype=torch.long)
         for i in range(mask.shape[0]):
-            mask[i, 0:traj_len[i], 0:traj_len[i]] = 1
+            mask[i, 0:traj_length[i], 0:traj_length[i]] = 1
 
-        esl, esu, etl, etu = self.emb_sl(mask), self.emb_su(mask), self.emb_tl(mask), self.emb_tu(mask)
-        vsl, vsu, vtl, vtu = (delta_s - self.sl).unsqueeze(-1).expand(-1, -1, -1, self.emb_size), \
-                             (self.su - delta_s).unsqueeze(-1).expand(-1, -1, -1, self.emb_size), \
-                             (delta_t - self.tl).unsqueeze(-1).expand(-1, -1, -1, self.emb_size), \
-                             (self.tu - delta_t).unsqueeze(-1).expand(-1, -1, -1, self.emb_size)
+        embedding_sl, embedding_su, embedding_tl, embedding_tu = self.embedding_sl(mask), self.embedding_su(mask), self.embedding_tl(mask), self.embedding_tu(mask)
+        v_sl, v_su, v_tl, v_tu = (delta_spatial - self.ex_sl).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size), \
+                                 (self.ex_su - delta_spatial).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size), \
+                                 (delta_temporal - self.ex_tl).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size), \
+                                 (self.ex_tu - delta_temporal).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size)
 
-        space_interval = (esl*vsu+esu*vsl) / (self.su-self.sl)
-        time_interval = (etl*vtu+etu*vtl) / (self.tu-self.tl)
-        delta = space_interval + time_interval  # (N, M, M, emb)
+        spatial_interval = (embedding_sl * v_su + embedding_su * v_sl) / (self.ex_su - self.ex_sl)
+        temporal_interval = (embedding_tl * v_tu + embedding_tu * v_tl) / (self.ex_tu - self.ex_tl)
+        delta_embedding = spatial_interval + temporal_interval  # (N, M, M, embedding)
 
-        return joint, delta
+        return joint_embedding, delta_embedding
 
-class SelfAttn(nn.Module):
-    def __init__(self, emb_size, output_size):
-        super(SelfAttn, self).__init__()
-        self.query = nn.Linear(emb_size, output_size, bias=False)
-        self.key = nn.Linear(emb_size, output_size, bias=False)
-        self.value = nn.Linear(emb_size, output_size, bias=False)
 
-    def forward(self, joint, delta, traj_len):
-        delta = torch.sum(delta, -1) 
-        # joint (N, M, emb), delta (N, M, M, emb), len [N]
+class CTRSelfAttention(nn.Module):
+    def __init__(self, embedding_size, output_size):
+        super(CTRSelfAttention, self).__init__()
+        self.query_linear = nn.Linear(embedding_size, output_size, bias=False)
+        self.key_linear = nn.Linear(embedding_size, output_size, bias=False)
+        self.value_linear = nn.Linear(embedding_size, output_size, bias=False)
+
+    def forward(self, joint_embedding, delta_embedding, traj_length):
+        delta_embedding = torch.sum(delta_embedding, -1) 
+        # joint_embedding (N, M, emb), delta_embedding (N, M, M, emb), traj_length [N]
         # construct attention mask
-        mask = torch.zeros_like(delta, dtype=torch.float32)
+        mask = torch.zeros_like(delta_embedding, dtype=torch.float32)
         for i in range(mask.shape[0]):
-            mask[i, 0:traj_len[i], 0:traj_len[i]] = 1
+            mask[i, 0:traj_length[i], 0:traj_length[i]] = 1
 
-        attn = torch.add(torch.bmm(self.query(joint), self.key(joint).transpose(-1, -2)), delta)  # (N, M, M)
-        attn = F.softmax(attn, dim=-1) * mask  # (N, M, M)
+        attention_scores = torch.add(torch.bmm(self.query_linear(joint_embedding), self.key_linear(joint_embedding).transpose(-1, -2)), delta_embedding)  # (N, M, M)
+        attention_scores = F.softmax(attention_scores, dim=-1) * mask  # (N, M, M)
 
-        attn_out = torch.bmm(attn, self.value(joint))  # (N, M, emb)
+        attention_output = torch.bmm(attention_scores, self.value_linear(joint_embedding))  # (N, M, emb)
 
-        return attn_out  # (N, M, emb)
+        return attention_output  # (N, M, emb)
 
-class Embed(nn.Module):
-    def __init__(self, ex, emb_size, loc_max, embed_layers):
-        super(Embed, self).__init__()
-        _, _, _, self.emb_su, self.emb_sl, self.emb_tu, self.emb_tl = embed_layers
-        self.su, self.sl, self.tu, self.tl = ex
-        self.emb_size = emb_size
-        self.loc_max = loc_max
 
-    def forward(self, traj_loc, mat2, vec, traj_len):
-        # traj_loc (N, M), mat2 (L, L), vec (N, M), delta_t (N, M, L)
-        delta_t = vec.unsqueeze(-1).expand(-1, -1, self.loc_max)
+class CTREmbedding(nn.Module):
+    def __init__(self, ex_parameters, embedding_size, max_location, embedding_layers):
+        super(CTREmbedding, self).__init__()
+        _, _, _, self.embedding_su, self.embedding_sl, self.embedding_tu, self.embedding_tl = embedding_layers
+        self.ex_su, self.ex_sl, self.ex_tu, self.ex_tl = ex_parameters
+        self.embedding_size = embedding_size
+        self.max_location = max_location
+
+    def forward(self, traj_location, mat2, vector, traj_length):
+        # traj_location (N, M), mat2 (L, L), vector (N, M), delta_t (N, M, L)
+        delta_t = vector.unsqueeze(-1).expand(-1, -1, self.max_location)
         delta_s = torch.zeros_like(delta_t, dtype=torch.float32)
         mask = torch.zeros_like(delta_t, dtype=torch.long)
         for i in range(mask.shape[0]): 
-            mask[i, 0:traj_len[i]] = 1
-            delta_s[i, :traj_len[i]] = torch.index_select(mat2, 0, (traj_loc[i]-1)[:traj_len[i]])
+            mask[i, 0:traj_length[i]] = 1
+            delta_s[i, :traj_length[i]] = torch.index_select(mat2, 0, (traj_location[i]-1)[:traj_length[i]])
 
-        esl, esu, etl, etu = self.emb_sl(mask), self.emb_su(mask), self.emb_tl(mask), self.emb_tu(mask)
-        vsl, vsu, vtl, vtu = (delta_s - self.sl).unsqueeze(-1).expand(-1, -1, -1, self.emb_size), \
-                             (self.su - delta_s).unsqueeze(-1).expand(-1, -1, -1, self.emb_size), \
-                             (delta_t - self.tl).unsqueeze(-1).expand(-1, -1, -1, self.emb_size), \
-                             (self.tu - delta_t).unsqueeze(-1).expand(-1, -1, -1, self.emb_size)
+        embedding_sl, embedding_su, embedding_tl, embedding_tu = self.embedding_sl(mask), self.embedding_su(mask), self.embedding_tl(mask), self.embedding_tu(mask)
+        v_sl, v_su, v_tl, v_tu = (delta_s - self.ex_sl).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size), \
+                                 (self.ex_su - delta_s).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size), \
+                                 (delta_t - self.ex_tl).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size), \
+                                 (self.ex_tu - delta_t).unsqueeze(-1).expand(-1, -1, -1, self.embedding_size)
 
-        space_interval = (esl * vsu + esu * vsl) / (self.su - self.sl)
-        time_interval = (etl * vtu + etu * vtl) / (self.tu - self.tl)
-        delta = space_interval + time_interval  # (N, M, L, emb)
+        space_interval = (embedding_sl * v_su + embedding_su * v_sl) / (self.ex_su - self.ex_sl)
+        time_interval = (embedding_tl * v_tu + embedding_tu * v_tl) / (self.ex_tu - self.ex_tl)
+        delta_embedding = space_interval + time_interval  # (N, M, L, embedding)
 
-        return delta
+        return delta_embedding
+
 
 class SelfAttn_dropout(nn.Module):
     def __init__(self, emb_size, output_size, dropout):
@@ -120,6 +122,7 @@ class SelfAttn_dropout(nn.Module):
         attn_out = torch.bmm(attn, self.value(joint))  # (N, M, emb)
 
         return attn_out  # (N, M, emb)
+
 
 class SelfAttn_MultiHead(nn.Module):
     def __init__(self, emb_size, output_size, num_heads, dropout):
@@ -180,14 +183,15 @@ class SelfAttn_MultiHead(nn.Module):
         output = self.output_linear(attn_concat)
 
         return output
-    
-class Attn(nn.Module):
+
+
+class CTRAttention(nn.Module):
     def __init__(self, emb_loc, loc_max, dropout=0.2):
-        super(Attn, self).__init__()
+        super(CTRAttention, self).__init__()
         self.value = nn.Linear(100, 1, bias=False)
         self.emb_loc = emb_loc
         self.loc_max = loc_max
-
+    
     def forward(self, self_attn, self_delta, traj_len):
         # self_attn (N, M, emb), candidate (N, L, emb), self_delta (N, M, L, emb), len [N]
         self_delta = torch.sum(self_delta, -1).transpose(-1, -2)  
