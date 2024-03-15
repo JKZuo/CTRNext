@@ -75,43 +75,48 @@ def calculate_ndcg(prob, label, k):
     return avg_ndcg
 
 
-def sampling_prob(prob, label, num_neg):
-    num_label, l_m = prob.shape[0], prob.shape[1]-1  
-    label = label.view(-1)  # label (N)
-    init_label = np.linspace(0, num_label-1, num_label)  
-    init_prob = torch.zeros(size=(num_label, num_neg+len(label)))  
+def CTR_samplingprob(probability_matrix, labels, num_negative_samples):
+    num_labels, label_max = probability_matrix.shape[0], probability_matrix.shape[1] - 1  
+    labels = labels.view(-1)  
+    initial_labels = np.linspace(0, num_labels - 1, num_labels)  
+    initial_probability = torch.zeros(size=(num_labels, num_negative_samples + len(labels)))  
 
-    random_ig = random.sample(range(1, l_m+1), num_neg)  
-    while len([lab for lab in label if lab in random_ig]) != 0:
-        random_ig = random.sample(range(1, l_m+1), num_neg)
+    random_negative_indices = random.sample(range(1, label_max + 1), num_negative_samples)  
+    while len([lab for lab in labels if lab in random_negative_indices]) != 0:
+        random_negative_indices = random.sample(range(1, label_max + 1), num_negative_samples)
 
     global global_seed
     random.seed(global_seed)
     global_seed += 1
 
-    for k in range(num_label):
-        for i in range(num_neg + len(label)):
-            if i < len(label):
-                init_prob[k, i] = prob[k, label[i]]
+    for k in range(num_labels):
+        for i in range(num_negative_samples + len(labels)):
+            if i < len(labels):
+                initial_probability[k, i] = probability_matrix[k, labels[i]]
             else:
-                init_prob[k, i] = prob[k, random_ig[i-len(label)]]
+                initial_probability[k, i] = probability_matrix[k, random_negative_indices[i - len(labels)]]
 
-    return torch.FloatTensor(init_prob), torch.LongTensor(init_label) 
+    return torch.FloatTensor(initial_probability), torch.LongTensor(initial_labels)
 
-class DataSet(data.Dataset):
-    def __init__(self, traj, m1, v, label, length):
-        self.traj, self.mat1, self.vec, self.label, self.length = traj, m1, v, label, length
+
+class CTRDataset(data.Dataset):
+    def __init__(self, trajectories, matrices1, vectors, labels, lengths):
+        self.trajectories = trajectories
+        self.matrices1 = matrices1
+        self.vectors = vectors
+        self.labels = labels
+        self.lengths = lengths
 
     def __getitem__(self, index):
-        traj = self.traj[index].to(device)
-        mats1 = self.mat1[index].to(device)
-        vector = self.vec[index].to(device)
-        label = self.label[index].to(device)
-        length = self.length[index].to(device)
-        return traj, mats1, vector, label, length
+        trajectory = self.trajectories[index].to(device)
+        matrices1 = self.matrices1[index].to(device)
+        vector = self.vectors[index].to(device)
+        label = self.labels[index].to(device)
+        length = self.lengths[index].to(device)
+        return trajectory, matrices1, vector, label, length
 
     def __len__(self):
-        return len(self.traj)
+        return len(self.trajectories)
 
 
 class Trainer:
@@ -129,7 +134,7 @@ class Trainer:
         self.traj, self.mat1, self.mat2s, self.mat2t, self.label, self.len = \
             trajs, mat1, mat2s, mat2t, labels, lens
         
-        self.dataset = DataSet(self.traj, self.mat1, self.mat2t, self.label-1, self.len)
+        self.dataset = CTRDataset(self.traj, self.mat1, self.mat2t, self.label-1, self.len)
         self.data_loader = data.DataLoader(dataset=self.dataset, batch_size=self.batch_size, shuffle=False)
 
     def train(self):
@@ -163,7 +168,7 @@ class Trainer:
                     prob = self.model(train_input, train_m1, self.mat2s, train_m2t, train_len) 
 
                     if mask_len <= person_traj_len[0] - 2: 
-                        prob_sample, label_sample = sampling_prob(prob, train_label, self.num_neg)
+                        prob_sample, label_sample = CTR_samplingprob(prob, train_label, self.num_neg)
                         loss_train = F.cross_entropy(prob_sample, label_sample)
                         loss_train.backward()
                         optimizer.step()
@@ -268,9 +273,10 @@ if __name__ == '__main__':
     part = 100
     trajs, mat1, mat2t, labels, lens = trajs[:part], mat1[:part], mat2t[:part], labels[:part], lens[:part]
     ex = mat1[:, :, :, 0].max(), mat1[:, :, :, 0].min(), mat1[:, :, :, 1].max(), mat1[:, :, :, 1].min()
-    CTR = Model(t_dim = hours+1, l_dim = l_max+1, u_dim = u_max+1, embed_dim = 50, ex = ex)
+    hours = 24*7
+    CTR = Model(t_dimension = hours+1, l_dimension = l_max+1, u_dimension = u_max+1, embedding_dimension = 50, ex = ex)
     num_params = 0
-
+    
     for param in CTR.parameters():
         num_params += param.numel()
     print('Parameters of CTR model', num_params)
@@ -282,4 +288,4 @@ if __name__ == '__main__':
     trainer = Trainer(CTR, records)
     trainer.train()
 
-# nohup python train.py > TKY.log 2>&1 &
+# nohup python train.py > train.log 2>&1 &
