@@ -38,6 +38,8 @@ You will see on the screen the result:
 epoch:1, time:86, valid_acc:[0.35 0.48 0.57 0.62],MRR:0.426, mAP20:0.419, NDCG5:0.424, NDCG10:0.452, NDCG20:0.465
 
 epoch:1, time:86, test_acc:[0.30 0.43 0.51 0.59], MRR:0.367, mAP20:0.361, NDCG5:0.366, NDCG10:0.392, NDCG20:0.412
+
+We ultimately chose the results from the testing set corresponding to the best performance on the validation set as the output.
   
 ## Data
 Due to the large dataset, you can download it through this link:
