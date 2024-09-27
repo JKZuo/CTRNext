@@ -52,7 +52,7 @@ https://pan.baidu.com/s/19NG8Vn3u4fhsUK1P_kEr0Q?pwd=poi1
 If you feel that this work has been helpful for your research, please cite it as: 
 
 ```tex
-@ARTICLE{ZUO2024124884,
+@ARTICLE{CTRNext,
 title = {Collaborative trajectory representation for enhanced next POI recommendation},
 journal = {Expert Systems with Applications},
 volume = {256},
