@@ -1,16 +1,29 @@
-## CTRNext
-A Collaborative Trajectory Representation Model (CTRNext) to Enhance the Next POI Recommendation.
+# CTRNext
+Collaborative Trajectory Representation for Enhanced Next POI Recommendation (CTRNext)
+
+- Motivation: Although existing studies have taken factors such as spatial, social relations, and temporal elements influencing the effectiveness of POI recommendations into account, their focus tends to lean toward fitting individual users’ historical check-in behaviors. In fact, predicting the next visit of a specific user not only relies on that user’s individual historical check-in POI (i.e., POI-POI Interaction) but also correlates with the trajectories of other users who share similar habitual preferences (i.e., User–User Interaction), as shown in **Fig. 1**.
+<p align="center">
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/fig0.png" width="600"/>
+</p>
+<p align = "center">
+<b>Figure 1. An illustration of the similar-minded users. </b> 
+</p>
+
+The overall framework of our proposed CTRNext model is illustrated in **Fig. 2**, comprising primarily of two embedding layers that learn the dense representations from user historical check-in trajectories, and three learning modules that refine and update these representations to generate recommendations tailored to user preferences.
+<p align="center">
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/fig1.png" width="800"/>
+</p>
+<p align = "center">
+<b>Figure 2. The framework of the proposed Collaborative Trajectory Representation (CTRNext) model. </b> 
+</p>
 
 ## Requirements
 The code has been tested running under Python 3.9.12.
 
 The required packages are as follows: 
-
-Python == 3.9.12 
-
-PyTorch == 1.11.0
-
-NumPy == 1.18.2
+- Python == 3.9.12 
+- PyTorch == 1.11.0
+- NumPy == 1.18.2
 
 ## Running
 ```shell
@@ -42,11 +55,12 @@ epoch:1, time:86, test_acc:[0.30 0.43 0.51 0.59], MRR:0.367, mAP20:0.361, NDCG5:
 We ultimately chose the results from the testing set corresponding to the best performance on the validation set as the output.
 
 
-  
 ## Data
 Due to the large dataset, you can download it through this link:
 
 https://pan.baidu.com/s/19NG8Vn3u4fhsUK1P_kEr0Q?pwd=poi1
+
+
 
 ## Cite
 If you feel that this work has been helpful for your research, please cite it as: 
