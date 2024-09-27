@@ -59,7 +59,7 @@ We ultimately chose the results from the testing set corresponding to the best p
 We conduct our experiments on four widely used cities for the POI location recommendation task, namely New York City (NYC), Tokyo (TKY), Singapore (SIN), California and Nevada (CA), all collected from
 the two most popular location-based social networks (LBSNs) service providers, i.e., Foursquare and Gowalla.  The basic statistical information of the four datasets is shown in **Table 2**.
 <p align="center">
-<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/table2.png" width="600"/>
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/table2.png"/>
 </p>
 <p align = "center">
 <b>Table 2. Basic dataset statistics of four datasets. </b> 
@@ -91,7 +91,7 @@ The top ten most check-in location categories among the four cities are shown in
 <img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/fig4.png"/>
 </p>
 <p align = "center">
-<b>Figure 5. Performance of CTRNext under different values of the hidden state size and the number of attention channels. </b> 
+<b>Figure 5. Performance of CTRNext under different values of the hidden state size and attention channels. </b> 
 </p>
 
 
