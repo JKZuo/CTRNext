@@ -56,10 +56,43 @@ We ultimately chose the results from the testing set corresponding to the best p
 
 
 ## Data
+We conduct our experiments on four widely used cities for the POI location recommendation task, namely New York City (NYC), Tokyo (TKY), Singapore (SIN), California and Nevada (CA), all collected from
+the two most popular location-based social networks (LBSNs) service providers, i.e., Foursquare and Gowalla.  The basic statistical information of the four datasets is shown in **Table 2**.
+<p align="center">
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/table2.png" width="600"/>
+</p>
+<p align = "center">
+<b>Table 2. Basic dataset statistics of four datasets. </b> 
+</p>
+
 Due to the large dataset, you can download it through this link:
 
 https://pan.baidu.com/s/19NG8Vn3u4fhsUK1P_kEr0Q?pwd=poi1
 
+Each record consists of the user ID, POI ID, POI’s GPS-specific coordinates, POI category, and check-in time. For some locations without POI categories, we have supplemented them using the OpenStreetMap-based Nominatim tool. 
+The top ten most check-in location categories among the four cities are shown in **Fig. 3**.
+<p align="center">
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/fig2.png" width="600"/>
+</p>
+<p align = "center">
+<b>Figure 3. The most frequently visited POI categories. </b> 
+</p>
+
+## Result
+**Fig. 4** and **Fig. 5** depicts the final results.
+<p align="center">
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/fig3.png"/>
+</p>
+<p align = "center">
+<b>Figure 4. Performance of CTRNext under different values of the embedding size and time decay rate. </b> 
+</p>
+
+<p align="center">
+<img align="middle" src="https://github.com/JKZuo/CTRNext/blob/main/Figures/fig4.png"/>
+</p>
+<p align = "center">
+<b>Figure 5. Performance of CTRNext under different values of the hidden state size and the number of attention channels. </b> 
+</p>
 
 
 ## Cite
