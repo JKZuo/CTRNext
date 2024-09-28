@@ -1,4 +1,7 @@
 # CTRNext
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
+![Python 3.9](https://img.shields.io/badge/Python-3.9-blue.svg)
+
 Collaborative Trajectory Representation for Enhanced Next POI Recommendation (CTRNext)
 
 - Motivation: Although existing studies have taken factors such as spatial, social relations, and temporal elements influencing the effectiveness of POI recommendations into account, their focus tends to lean toward fitting individual users’ historical check-in behaviors. In fact, predicting the next visit of a specific user not only relies on that user’s individual historical check-in POI (i.e., POI-POI Interaction) but also correlates with the trajectories of other users who share similar habitual preferences (i.e., User–User Interaction), as shown in **Fig. 1**.
