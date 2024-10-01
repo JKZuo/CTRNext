@@ -1,6 +1,7 @@
 # CTRNext
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 ![Python 3.9](https://img.shields.io/badge/Python-3.9-blue.svg)
+![Code](https://img.shields.io/badge/Code-python-purple)
 
 Collaborative Trajectory Representation for Enhanced Next POI Recommendation (CTRNext)
 
