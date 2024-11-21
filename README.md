@@ -104,6 +104,7 @@ If you feel that this work has been helpful for your research, please cite it as
 
 ```tex
 @ARTICLE{CTRNext,
+author = {Jiankai Zuo and Yaying Zhang},
 title = {Collaborative trajectory representation for enhanced next POI recommendation},
 journal = {Expert Systems with Applications},
 volume = {256},
@@ -112,9 +113,8 @@ year = {2024},
 ISSN = {0957-4174},
 doi = {https://doi.org/10.1016/j.eswa.2024.124884},
 URL = {https://www.sciencedirect.com/science/article/pii/S0957417424017512},
-author = {Jiankai Zuo and Yaying Zhang},
 keywords = {Next POI recommendation, Trajectory similarity, Attention mechanism, Representation learning},
 }
 ```
 
-- This code is a simplified version of the CTRNext model, and some of the core code will also be needed for my future research. If you want to know more, please feel free to send me a private message.
+- This code is a simplified version of the CTRNext model, and some of the core code will also be needed for my future research. If you want to know more, please send me a private message.
